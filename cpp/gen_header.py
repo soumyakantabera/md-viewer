@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+"""Generates webview2_min.h: just the WebView2 COM interfaces MD Viewer uses, with exact vtable layouts
+derived from the webview2-com-sys Rust bindings (which are generated from Microsoft's own metadata).
+Usage: python3 gen_header.py path/to/bindings.rs > webview2_min.h"""
+import re,sys
+s=open(sys.argv[1]).read()
+def vt(name):
+    m=re.search(r'pub struct %s_Vtbl \{\n(.*?)\n\}\n'%re.escape(name),s,re.S)
+    base=re.search(r'base__: ([A-Za-z0-9_:]+)',m.group(1)).group(1)
+    return base.replace('_Vtbl','').replace('windows_core::IUnknown','IUnknown'),re.findall(r'^    pub (\w+):\s*(?:unsafe extern|usize)',m.group(1),re.M)
+def guid(name):
+    m=re.search(r'\n    %s,\n    %s_Vtbl,\n    0x([0-9a-f]{8})_([0-9a-f]{4})_([0-9a-f]{4})_([0-9a-f]{4})_([0-9a-f]{12})'%((re.escape(name),)*2),s)
+    a,b,c,d,e=m.groups();dd=d+e
+    return '{0x%s,0x%s,0x%s,{%s}}'%(a,b,c,','.join('0x'+dd[i:i+2] for i in range(0,16,2)))
+H='ICoreWebView2'
+TYPED={
+ 'ICoreWebView2Environment':{'CreateCoreWebView2Controller':'CreateCoreWebView2Controller(HWND parent, ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* handler)'},
+ 'ICoreWebView2Controller4':{'SetAllowExternalDrop':'put_AllowExternalDrop(BOOL v)'},
+ 'ICoreWebView2NavigationStartingEventArgs':{'Uri':'get_Uri(LPWSTR* uri)','SetCancel':'put_Cancel(BOOL c)'},
+ 'ICoreWebView2NewWindowRequestedEventArgs':{'Uri':'get_Uri(LPWSTR* uri)','SetHandled':'put_Handled(BOOL h)'},
+ 'ICoreWebView2Environment6':{'CreatePrintSettings':'CreatePrintSettings(ICoreWebView2PrintSettings** s)'},
+ 'ICoreWebView2PrintSettings':{'SetPageWidth':'put_PageWidth(double v)','SetPageHeight':'put_PageHeight(double v)','SetMarginTop':'put_MarginTop(double v)','SetMarginBottom':'put_MarginBottom(double v)','SetMarginLeft':'put_MarginLeft(double v)','SetMarginRight':'put_MarginRight(double v)','SetShouldPrintBackgrounds':'put_ShouldPrintBackgrounds(BOOL v)','SetShouldPrintHeaderAndFooter':'put_ShouldPrintHeaderAndFooter(BOOL v)'},
+ 'ICoreWebView2Controller':{'SetIsVisible':'put_IsVisible(BOOL v)','SetBounds':'put_Bounds(RECT bounds)','CoreWebView2':'get_CoreWebView2(ICoreWebView2** wv)','Close':'Close()'},
+ 'ICoreWebView2':{'Settings':'get_Settings(ICoreWebView2Settings** s)','Navigate':'Navigate(LPCWSTR uri)',
+   'AddScriptToExecuteOnDocumentCreated':'AddScriptToExecuteOnDocumentCreated(LPCWSTR js, ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler* h)',
+   'ExecuteScript':'ExecuteScript(LPCWSTR js, ICoreWebView2ExecuteScriptCompletedHandler* h)',
+   'PostWebMessageAsString':'PostWebMessageAsString(LPCWSTR msg)',
+   'add_WebMessageReceived':'add_WebMessageReceived(ICoreWebView2WebMessageReceivedEventHandler* h, WV2Token* t)',
+   'add_NavigationStarting':'add_NavigationStarting(ICoreWebView2NavigationStartingEventHandler* h, WV2Token* t)',
+   'add_NewWindowRequested':'add_NewWindowRequested(ICoreWebView2NewWindowRequestedEventHandler* h, WV2Token* t)',
+   'add_DocumentTitleChanged':'add_DocumentTitleChanged(ICoreWebView2DocumentTitleChangedEventHandler* h, WV2Token* t)',
+   'DocumentTitle':'get_DocumentTitle(LPWSTR* title)'},
+ 'ICoreWebView2Settings':{'SetAreDefaultContextMenusEnabled':'put_AreDefaultContextMenusEnabled(BOOL v)','SetIsStatusBarEnabled':'put_IsStatusBarEnabled(BOOL v)','SetAreDevToolsEnabled':'put_AreDevToolsEnabled(BOOL v)'},
+ 'ICoreWebView2WebMessageReceivedEventArgs':{'TryGetWebMessageAsString':'TryGetWebMessageAsString(LPWSTR* msg)'},
+ 'ICoreWebView2_7':{'PrintToPdf':'PrintToPdf(LPCWSTR path, ICoreWebView2PrintSettings* settings, ICoreWebView2PrintToPdfCompletedHandler* h)'},
+}
+HANDLERS={
+ 'ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler':'HRESULT hr, ICoreWebView2Environment* env',
+ 'ICoreWebView2CreateCoreWebView2ControllerCompletedHandler':'HRESULT hr, ICoreWebView2Controller* ctl',
+ 'ICoreWebView2WebMessageReceivedEventHandler':'ICoreWebView2* sender, ICoreWebView2WebMessageReceivedEventArgs* args',
+ 'ICoreWebView2PrintToPdfCompletedHandler':'HRESULT hr, BOOL ok',
+ 'ICoreWebView2DocumentTitleChangedEventHandler':'ICoreWebView2* sender, IUnknown* args',
+ 'ICoreWebView2NavigationStartingEventHandler':'ICoreWebView2* sender, ICoreWebView2NavigationStartingEventArgs* args',
+ 'ICoreWebView2NewWindowRequestedEventHandler':'ICoreWebView2* sender, ICoreWebView2NewWindowRequestedEventArgs* args',
+}
+order=['ICoreWebView2Settings','ICoreWebView2PrintSettings','ICoreWebView2NavigationStartingEventArgs','ICoreWebView2NewWindowRequestedEventArgs','ICoreWebView2WebMessageReceivedEventArgs','ICoreWebView2','ICoreWebView2_2','ICoreWebView2_3','ICoreWebView2_4','ICoreWebView2_5','ICoreWebView2_6','ICoreWebView2_7','ICoreWebView2Controller','ICoreWebView2Controller2','ICoreWebView2Controller3','ICoreWebView2Controller4','ICoreWebView2Environment','ICoreWebView2Environment2','ICoreWebView2Environment3','ICoreWebView2Environment4','ICoreWebView2Environment5','ICoreWebView2Environment6']
+out=['// GENERATED by gen_header.py - minimal WebView2 interface declarations (vtable layouts must not be edited).',
+'#pragma once','#include <windows.h>','typedef struct { __int64 value; } WV2Token;']
+fwd=['ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler','ICoreWebView2ExecuteScriptCompletedHandler']+order+list(HANDLERS)
+out+=['struct %s;'%n for n in fwd]
+for n in order:
+    base,names=vt(n);ty=TYPED.get(n,{});out.append('struct %s : public %s {'%(n,base))
+    for i,nm in enumerate(names):
+        out.append('  virtual HRESULT STDMETHODCALLTYPE %s = 0;'%(ty[nm] if nm in ty else '_slot_%s_%d()'%(nm,i)))
+    out.append('};');
+    left=set(ty)-set(names)
+    assert not left,(n,left)
+for n,args in HANDLERS.items():
+    out.append('struct %s : public IUnknown { virtual HRESULT STDMETHODCALLTYPE Invoke(%s) = 0; };'%(n,args))
+for n in order+list(HANDLERS):
+    out.append('static const IID IID_%s = %s;'%(n,guid(n)))
+print('\n'.join(out))
