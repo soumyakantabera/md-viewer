@@ -7,7 +7,7 @@
 **A tiny, fast Markdown viewer for Windows, written in C++.**
 Mermaid diagrams · LaTeX math · syntax highlighting · tabs · live reload · online media
 
-[![Build](https://github.com/YOUR-USERNAME/md-viewer/actions/workflows/release.yml/badge.svg)](https://github.com/YOUR-USERNAME/md-viewer/actions)
+[![Build](https://github.com/soumyakantabera/md-viewer/actions/workflows/release.yml/badge.svg)](https://github.com/soumyakantabera/md-viewer/actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ![Dark mode with a Mermaid diagram](docs/screenshots/demo-dark.png)
@@ -18,10 +18,10 @@ Mermaid diagrams · LaTeX math · syntax highlighting · tabs · live reload · 
 
 <div align="center">
 
-[![Download for Windows](https://img.shields.io/badge/Download-MD%20Viewer%20Setup%20(1.6%20MB)-0969da?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/YOUR-USERNAME/md-viewer/raw/main/installer/MD-Viewer-Setup.exe)
+[![Download for Windows](https://img.shields.io/badge/Download-MD%20Viewer%20Setup%20(1.6%20MB)-0969da?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/soumyakantabera/md-viewer/raw/main/installer/MD-Viewer-Setup.exe)
 
-**One click** - about 1.6 MB, straight from this repository. Also on the [Releases page](https://github.com/YOUR-USERNAME/md-viewer/releases/latest).
-Prefer no install? Use the [portable zip](https://github.com/YOUR-USERNAME/md-viewer/raw/main/installer/MD-Viewer-portable.zip).
+**One click** - about 1.6 MB, straight from this repository. Also on the [Releases page](https://github.com/soumyakantabera/md-viewer/releases/latest).
+Prefer no install? Use the [portable zip](https://github.com/soumyakantabera/md-viewer/raw/main/installer/MD-Viewer-portable.zip).
 
 </div>
 
@@ -68,7 +68,7 @@ Needs Node.js 18+ (to fetch the web libraries) and MinGW-w64 (cross-compiler). O
 
 ```bash
 sudo apt install g++-mingw-w64-x86-64-posix binutils-mingw-w64-x86-64 nsis zip
-git clone https://github.com/YOUR-USERNAME/md-viewer.git && cd md-viewer
+git clone https://github.com/soumyakantabera/md-viewer.git && cd md-viewer
 npm ci                 # installs marked, mermaid, KaTeX, highlight.js and copies them into src/lib
 ./cpp/build.sh         # -> cpp/dist/mdviewer.exe, MD-Viewer-Setup.exe, MD-Viewer-portable.zip
 ```
